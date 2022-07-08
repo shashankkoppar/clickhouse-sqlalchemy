@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 from decimal import Decimal
 from functools import partial
+from sqlalchemy.util import asbool
 
 from ipaddress import IPv4Address, IPv6Address
 
@@ -51,7 +52,6 @@ converters = {
     'Int8': int,
     'UInt8': int,
     'Int16': int,
-    'String': String,
     'UInt16': int,
     'Int32': int,
     'UInt32': int,
@@ -59,6 +59,7 @@ converters = {
     'UInt64': int,
     'Int128': int,
     'UInt128': int,
+    'String': String,
     'Int256': int,
     'UInt256': int,
     'Float32': float,
@@ -84,13 +85,10 @@ def _get_type(type_str):
 
     if type_str == 'Bool':
         return converters['UInt8']
-        
+
     if type_str == 'LowCardinality(Nullable(String))':
         return converters['String']
-    
-    # sometimes type_str is DateTime64(x)
-    if type_str.startswith('DateTime64'):
-        return converters['DateTime64']
+
     if type_str.startswith('Decimal'):
         return converters['Decimal']
     if type_str.startswith('Nullable('):
@@ -104,35 +102,31 @@ class RequestsTransport(object):
     def __init__(
             self,
             db_url, db_name, username, password,
-            timeout=None, ch_settings=None,
+            timeout=None, ch_settings=None, verify=None,
             **kwargs):
 
         self.db_url = db_url
         self.db_name = db_name
         self.auth = (username, password)
         self.timeout = float(timeout) if timeout is not None else None
-        self.verify = kwargs.pop('verify', True)
-        self.cert = kwargs.pop('cert', None)
+        self.verify = asbool(verify)
         self.headers = {
             key[8:]: value
             for key, value in kwargs.items()
             if key.startswith('header__')
         }
 
-        self.unicode_errors = kwargs.pop('unicode_errors', 'replace')
+        self.unicode_errors = kwargs.pop('unicode_errors', 'escape')
 
         ch_settings = dict(ch_settings or {})
         self.ch_settings = ch_settings
-
-        self.ch_settings['default_format'] = 'TabSeparatedWithNamesAndTypes'
 
         ddl_timeout = kwargs.pop('ddl_timeout', DEFAULT_DDL_TIMEOUT)
         if ddl_timeout is not None:
             self.ch_settings['distributed_ddl_task_timeout'] = int(ddl_timeout)
 
         # By default, keep connection open between queries.
-        http = kwargs.pop('http_session', requests.Session)
-        self.http = http() if callable(http) else http
+        self.http = kwargs.pop('http_session', requests.Session())
 
         super(RequestsTransport, self).__init__()
 
@@ -182,7 +176,7 @@ class RequestsTransport(object):
         r = self.http.post(
             self.db_url, auth=self.auth, params=params, data=data,
             stream=stream, timeout=self.timeout, headers=self.headers,
-            verify=self.verify, cert=self.cert
+            verify=self.verify,
         )
         if r.status_code != 200:
             orig = HTTPException(r.text)

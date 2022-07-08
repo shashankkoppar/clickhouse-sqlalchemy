@@ -1,12 +1,12 @@
 from sqlalchemy.sql import ClauseElement
-from sqlalchemy.sql.schema import ColumnCollectionMixin, SchemaItem, Constraint
+from sqlalchemy.sql.base import SchemaEventTarget
+from sqlalchemy.sql.schema import ColumnCollectionMixin, SchemaItem
+from sqlalchemy.sql.visitors import Visitable
+from sqlalchemy.util import zip_longest
 
 
-class Engine(Constraint):
+class Engine(SchemaEventTarget, Visitable):
     __visit_name__ = 'engine'
-
-    def __init__(self, *args, **kwargs):
-        pass
 
     def get_parameters(self):
         return []
@@ -24,9 +24,9 @@ class Engine(Constraint):
     def name(self):
         return self.__class__.__name__
 
-    def _set_parent(self, parent, **kwargs):
-        self.parent = parent
-        parent.engine = self
+    def _set_parent(self, table):
+        self.table = table
+        self.table.engine = self
 
     @classmethod
     def reflect(cls, table, engine_full, **kwargs):
@@ -43,24 +43,22 @@ class TableCol(ColumnCollectionMixin, SchemaItem):
 
 class KeysExpressionOrColumn(ColumnCollectionMixin, SchemaItem):
     def __init__(self, *expressions, **kwargs):
+        columns = []
         self.expressions = []
+        for expr, column, strname, add_element in self.\
+                _extract_col_expression_collection(expressions):
+            if add_element is not None:
+                columns.append(add_element)
+            self.expressions.append(expr)
 
-        super(KeysExpressionOrColumn, self).__init__(
-            *expressions, _gather_expressions=self.expressions, **kwargs
-        )
+        super(KeysExpressionOrColumn, self).__init__(*columns, **kwargs)
 
-    def _set_parent(self, table, **kw):
-        ColumnCollectionMixin._set_parent(self, table)
-
-        self.table = table
-
-        expressions = self.expressions
-        col_expressions = self._col_expressions(table)
-        assert len(expressions) == len(col_expressions)
-        self.expressions = [
-            expr if isinstance(expr, ClauseElement) else colexpr
-            for expr, colexpr in zip(expressions, col_expressions)
-        ]
+    def _set_parent(self, table):
+        super(KeysExpressionOrColumn, self)._set_parent(table)
 
     def get_expressions_or_columns(self):
-        return self.expressions
+        expr_columns = zip_longest(self.expressions, self.columns)
+        return [
+            (expr if isinstance(expr, ClauseElement) else colexpr)
+            for expr, colexpr in expr_columns
+        ]

@@ -1,8 +1,8 @@
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
-from unittest.mock import patch
 
 from responses import mock
+from mock import patch
 from sqlalchemy import Column, func
 
 from clickhouse_sqlalchemy import types, Table
@@ -97,26 +97,6 @@ class TransportCase(HttpSessionTestCase):
 
         rv = self.session.query(*table.c).first()
         self.assertEqual(rv, (date(2012, 10, 25), ))
-
-    @patch.object(ClickHouseDialect_http, '_get_server_version_info')
-    @mock.activate
-    def test_parse_date_time_type(self, patched_server_info):
-        mock.add(
-            mock.POST, self.url, status=200,
-            body=(
-                'a\n' +
-                'DateTime64(3)\n' +
-                '2012-10-25 00:00:00.0\n'
-            )
-        )
-
-        table = Table(
-            't1', self.metadata(),
-            Column('a', types.DateTime)
-        )
-
-        rv = self.session.query(*table.c).first()
-        self.assertEqual(rv, (datetime(2012, 10, 25), ))
 
     @mock.activate
     def test_parse_nullable_type(self):

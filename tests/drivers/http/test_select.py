@@ -18,7 +18,7 @@ class FormatSectionTestCase(HttpSessionTestCase):
         )
 
         context = self.execution_ctx_cls._init_compiled(
-            bind.dialect, bind, bind, {}, statement, [], clause, []
+            bind.dialect, bind, bind, statement, []
         )
         context.pre_exec()
 
@@ -38,7 +38,7 @@ class FormatSectionTestCase(HttpSessionTestCase):
         statement = self.compile(self.session.query(table.c.x), bind=bind)
         self.assertEqual(
             statement,
-            'SELECT t1.x AS t1_x FROM t1'
+            'SELECT t1.x AS t1_x FROM t1 FORMAT TabSeparatedWithNamesAndTypes'
         )
 
     def test_insert_from_select_no_format_clause(self):
@@ -57,8 +57,7 @@ class FormatSectionTestCase(HttpSessionTestCase):
             Column('x', types.Int32, primary_key=True)
         )
 
-        query = t2.insert().from_select(['x'], self.session.query(t1.c.x))
+        query = t2.insert() \
+            .from_select(['x'], self.session.query(t1.c.x).subquery())
         statement = self.compile(query, bind=bind)
-        self.assertEqual(
-            statement, 'INSERT INTO t2 (x) SELECT t1.x AS t1_x FROM t1'
-        )
+        self.assertEqual(statement, 'INSERT INTO t2 (x) SELECT t1.x FROM t1')

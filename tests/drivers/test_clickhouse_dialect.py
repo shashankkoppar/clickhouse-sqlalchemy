@@ -6,7 +6,7 @@ from tests.config import (
     system_http_uri, system_native_uri,
     database as test_database,
 )
-from tests.util import with_native_and_http_sessions, require_server_version
+from tests.util import with_native_and_http_sessions
 
 
 @with_native_and_http_sessions
@@ -93,8 +93,6 @@ class ClickHouseDialectTestCase(BaseTestCase):
 
         self.assertEqual(reflected_table.name, 'columns')
         self.assertEqual(reflected_table.schema, 'system')
-        if self.server_version >= (18, 16, 0):
-            self.assertIsNone(reflected_table.engine)
 
     def test_get_schema_names(self):
         schemas = self.dialect.get_schema_names(self.session)
@@ -104,20 +102,6 @@ class ClickHouseDialectTestCase(BaseTestCase):
         # should not raise UnsupportedCompilationError
         col = Column('x', types.Nullable(types.Int32))
         self.assertEqual(str(col.type), 'Nullable(Int32)')
-
-    @require_server_version(19, 16, 2)
-    def test_empty_set_expr(self):
-        numbers = Table(
-            'numbers', self.metadata(),
-            Column('number', types.UInt64, primary_key=True),
-            schema='system'
-        )
-
-        rv = self.session.query(numbers.c.number) \
-            .filter(numbers.c.number.in_([])) \
-            .all()
-
-        self.assertEqual(len(rv), 0)
 
 
 class CachedServerVersionTestCase(BaseTestCase):

@@ -1,4 +1,6 @@
 
+from .util import compat
+
 
 class DatabaseException(Exception):
     def __init__(self, orig):
@@ -6,4 +8,10 @@ class DatabaseException(Exception):
         super(DatabaseException, self).__init__(orig)
 
     def __str__(self):
-        return 'Orig exception: {}'.format(self.orig)
+        text = 'Orig exception: {}'.format(self.orig)
+
+        if compat.PY3:
+            return compat.text_type(text)
+
+        else:
+            return compat.text_type(text).encode('utf-8')

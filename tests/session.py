@@ -5,11 +5,9 @@ from sqlalchemy import create_engine
 from clickhouse_sqlalchemy import make_session
 from tests.config import http_uri, native_uri, system_native_uri
 
-http_engine = create_engine(http_uri)
-http_session = make_session(http_engine)
+http_session = make_session(create_engine(http_uri))
 http_stream_session = make_session(create_engine(http_uri + '?stream=1'))
-native_engine = create_engine(native_uri)
-native_session = make_session(native_engine)
+native_session = make_session(create_engine(native_uri))
 
 system_native_session = make_session(create_engine(system_native_uri))
 
@@ -18,8 +16,7 @@ class MockedEngine(object):
 
     prev_do_execute = None
     prev_do_executemany = None
-    prev_get_server_version_info = None
-    prev_get_default_schema_name = None
+    prev_query_server_version_string = None
 
     def __init__(self, session=None):
         self._buffer = []
@@ -37,10 +34,8 @@ class MockedEngine(object):
     def __enter__(self):
         self.prev_do_execute = self.dialect_cls.do_execute
         self.prev_do_executemany = self.dialect_cls.do_executemany
-        self.prev_get_server_version_info = \
-            self.dialect_cls._get_server_version_info
-        self.prev_get_default_schema_name = \
-            self.dialect_cls._get_default_schema_name
+        self.prev_query_server_version_string = \
+            self.dialect_cls._query_server_version_string
 
         def do_executemany(
                 instance, cursor, statement, parameters, context=None):
@@ -49,26 +44,21 @@ class MockedEngine(object):
         def do_execute(instance, cursor, statement, parameters, context=None):
             self._buffer.append(statement)
 
-        def get_server_version_info(*args, **kwargs):
-            return (19, 16, 2, 2)
-
-        def get_default_schema_name(*args, **kwargs):
-            return 'test'
+        def query_server_version_string(*args, **kwargs):
+            return '19.16.2.2'
 
         self.dialect_cls.do_execute = do_execute
         self.dialect_cls.do_executemany = do_executemany
-        self.dialect_cls._get_server_version_info = get_server_version_info
-        self.dialect_cls._get_default_schema_name = get_default_schema_name
+        self.dialect_cls._query_server_version_string = \
+            query_server_version_string
 
         return self
 
     def __exit__(self, *exc_info):
         self.dialect_cls.do_execute = self.prev_do_execute
         self.dialect_cls.do_executemany = self.prev_do_executemany
-        self.dialect_cls._get_server_version_info = \
-            self.prev_get_server_version_info
-        self.dialect_cls._get_default_schema_name = \
-            self.prev_get_default_schema_name
+        self.dialect_cls._query_server_version_string = \
+            self.prev_query_server_version_string
 
 
 mocked_engine = MockedEngine

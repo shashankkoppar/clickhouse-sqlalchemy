@@ -1,8 +1,13 @@
-import configparser
-
 from sqlalchemy.dialects import registry
 
+from clickhouse_sqlalchemy.util import compat
+
 from tests import log
+
+if compat.PY3:
+    import configparser
+else:
+    import ConfigParser as configparser
 
 
 registry.register(

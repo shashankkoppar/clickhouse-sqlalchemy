@@ -35,8 +35,6 @@ dialects = [
     ]
 ]
 
-github_url = 'https://github.com/xzkostyan/clickhouse-sqlalchemy'
-
 setup(
     name='clickhouse-sqlalchemy',
     version=read_version(),
@@ -44,7 +42,7 @@ setup(
     description='Simple ClickHouse SQLAlchemy Dialect',
     long_description=long_description,
 
-    url=github_url,
+    url='https://github.com/xzkostyan/clickhouse-sqlalchemy',
 
     author='Konstantin Lebedev',
     author_email='kostyan.lebedev@gmail.com',
@@ -69,12 +67,12 @@ setup(
 
 
         'Programming Language :: SQL',
+        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
 
         'Topic :: Database',
         'Topic :: Software Development',
@@ -86,20 +84,26 @@ setup(
 
     keywords='ClickHouse db database cloud analytics',
 
-    project_urls={
-        'Documentation': 'https://clickhouse-sqlalchemy.readthedocs.io',
-        'Changes': github_url + '/blob/master/CHANGELOG.md'
-    },
     packages=find_packages('.', exclude=["tests*"]),
-    python_requires='>=3.6, <4',
+    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4',
     install_requires=[
-        'sqlalchemy>=1.4,<1.5',
+        'sqlalchemy>=1.3,<1.4',
         'requests',
-        'clickhouse-driver>=0.1.2'
+        'clickhouse-driver>=0.1.2',
+        'ipaddress; python_version<"3.4"',
     ],
     # Registering `clickhouse` as dialect.
     entry_points={
         'sqlalchemy.dialects': dialects
     },
-    test_suite='pytest'
+    test_suite='nose.collector',
+    tests_require=[
+        'nose',
+        'sqlalchemy>=1.3,<1.4',
+        'mock',
+        'requests',
+        'responses',
+        'enum34; python_version<"3.4"',
+        'parameterized'
+    ],
 )

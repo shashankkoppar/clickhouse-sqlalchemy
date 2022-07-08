@@ -2,67 +2,6 @@
 
 ## [Unreleased]
 
-## [0.2.1] - 2022-06-13
-### Fixed
-- Add `supports_statement_cache = True`. Solves issue [#169](https://github.com/xzkostyan/clickhouse-sqlalchemy/issues/169).
-- Add `cache_ok = True` for IP types.
-- Mixed `text()` and pure strings in engine parameters handling. Solves issue [#173](https://github.com/xzkostyan/clickhouse-sqlalchemy/issues/173).
-- Engine creation in alembic migrations.
-- `CREATE` and `DROP` Materialized views. Solves issue [#177](https://github.com/xzkostyan/clickhouse-sqlalchemy/issues/177).
-
-With changes from 0.1.9 and 0.1.10.
-
-## [0.2.0] - 2022-02-20
-### Added
-- `LEFT ARRAY JOIN` clause. Pull request [#167](https://github.com/xzkostyan/clickhouse-sqlalchemy/pull/167) by [Fozar](https://github.com/Fozar).
-
-### Changed
-- Supported SQLAlchemy version is 1.4.
-
-## [0.1.10] - 2022-06-06
-### Added
-- Documentation on Read the Docs: https://clickhouse-sqlalchemy.readthedocs.io
-
-### Fixed
-- ``AFTER`` clause rendering in ``ADD COLUMN``.
-- Broken Materialized views creation via ``.create()``.
-- Engine creation in migrations for alembic 1.6+. ``Engine`` is subclass of ``Constraint`` now.
-
-## [0.1.9] - 2022-05-08
-### Fixed
-- ReplicatedReplacingMergeTree reflection. Solves issue [#164](https://github.com/xzkostyan/clickhouse-sqlalchemy/issues/164).
-- Inline inserts with literal binds for alembic support.
-
-## [0.1.8] - 2022-02-03
-### Added
-- Tuple and Map types. Pull request [#163](https://github.com/xzkostyan/clickhouse-sqlalchemy/pull/163) by [joelynch](https://github.com/joelynch).
-- Materialized views alembic migrations autogeneration.
-
-### Fixed
-- Handle unsupported engines in table reflection.
-- `EXISTS` and `DESCRIBE` table quoting.
-- Default Unicode error handler to `replace`. Pull request [#166](https://github.com/xzkostyan/clickhouse-sqlalchemy/pull/166) by [cwurm](https://github.com/cwurm).
-- [Native] Inserts with `literal_column` values. Solves issue [#133](https://github.com/xzkostyan/clickhouse-sqlalchemy/issues/133).
-- Alembic nullable reflection.
-
-### Changed
-- Migrate from Travis CI to GitHub Actions.
-
-## [0.1.7] - 2021-11-18
-### Added
-- Support for distinctness comparisons (`is_distinct_from` / `isnot_distinct_from`). Pull request [#144](https://github.com/xzkostyan/clickhouse-sqlalchemy/pull/144) by [wlhjason](https://github.com/wlhjason). Solves issue [#143](https://github.com/xzkostyan/clickhouse-sqlalchemy/issues/143).
-- [HTTP] Cert auth. Pull request [#128](https://github.com/xzkostyan/clickhouse-sqlalchemy/pull/128) by [evgG](https://github.com/evgG).
-- [HTTP] Session factories. Pull request [#131](https://github.com/xzkostyan/clickhouse-sqlalchemy/pull/131) by [carlosefr](https://github.com/carlosefr).
-- [HTTP] Raw engine execute. Pull request [#134](https://github.com/xzkostyan/clickhouse-sqlalchemy/pull/134) by [FishermanZzhang](https://github.com/FishermanZzhang).
-- [HTTP] DateTime('timezone') support. Pull request [#141](https://github.com/xzkostyan/clickhouse-sqlalchemy/pull/141) by [lance-plusai](https://github.com/lance-plusai).
-- Optional disabling engine reflection. Solves issue [#140](https://github.com/xzkostyan/clickhouse-sqlalchemy/issues/140).
-- `AFTER` clause in `ALTER TABLE ... ADD COLUMN`. Pull request [#153](https://github.com/xzkostyan/clickhouse-sqlalchemy/pull/153) by [eivasch](https://github.com/eivasch).
--  Column default reflection from `DESCRIBE TABLE` default_expression. Pull request [#153](https://github.com/xzkostyan/clickhouse-sqlalchemy/pull/153) by [eivasch](https://github.com/eivasch).
-
-### Fixed
-- SAMPLE BY reflection. Solves issue [#127](https://github.com/xzkostyan/clickhouse-sqlalchemy/issues/127).
-- [HTTP] `verify` behavior in requests. Pull request [#128](https://github.com/xzkostyan/clickhouse-sqlalchemy/pull/128) by [evgG](https://github.com/evgG).
-
 ## [0.1.6] - 2021-03-15
 ### Added
 - [HTTP] Optional custom `requests.Session`. Pull request [#119](https://github.com/xzkostyan/clickhouse-sqlalchemy/pull/119) by [carlosefr](https://github.com/carlosefr).
@@ -273,14 +212,8 @@ Log, TinyLog, Null.
 - Chunked `INSERT INTO` in one request.
 - Engines: MergeTree, CollapsingMergeTree, SummingMergeTree, Buffer, Memory. 
 
-[Unreleased]: https://github.com/xzkostyan/clickhouse-sqlalchemy/compare/0.2.1...HEAD
-[0.2.1]: https://github.com/xzkostyan/clickhouse-sqlalchemy/compare/0.2.0...0.2.1
-[0.2.0]: https://github.com/xzkostyan/clickhouse-sqlalchemy/compare/0.1.9...0.2.0
-[0.1.10]: https://github.com/xzkostyan/clickhouse-sqlalchemy/compare/0.1.9...0.1.10
-[0.1.9]: https://github.com/xzkostyan/clickhouse-sqlalchemy/compare/0.1.8...0.1.9
-[0.1.8]: https://github.com/xzkostyan/clickhouse-sqlalchemy/compare/0.1.7...0.1.8
-[0.1.7]: https://github.com/xzkostyan/clickhouse-sqlalchemy/compare/0.1.6...0.1.7
-[0.1.6]: https://github.com/xzkostyan/clickhouse-sqlalchemy/compare/0.1.5...0.1.6
+[Unreleased]: https://github.com/xzkostyan/clickhouse-sqlalchemy/compare/0.1.6...HEAD
+[0.1.5]: https://github.com/xzkostyan/clickhouse-sqlalchemy/compare/0.1.5...0.1.6
 [0.1.5]: https://github.com/xzkostyan/clickhouse-sqlalchemy/compare/0.1.4...0.1.5
 [0.1.4]: https://github.com/xzkostyan/clickhouse-sqlalchemy/compare/0.1.3...0.1.4
 [0.1.3]: https://github.com/xzkostyan/clickhouse-sqlalchemy/compare/0.1.2...0.1.3

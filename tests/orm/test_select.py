@@ -1,6 +1,4 @@
-from unittest import mock
-
-from sqlalchemy import Column, exc, func, literal, select, tuple_
+from sqlalchemy import Column, exc, func, literal, select, text, tuple_
 
 from clickhouse_sqlalchemy import types, Table, engines
 from clickhouse_sqlalchemy.ext.clauses import Lambda
@@ -25,10 +23,10 @@ class SelectTestCase(CompilationTestCase):
             .having(func.count() > 0)\
             .order_by(table.c.x.desc())
         self.assertEqual(
-            self.compile(query, render_postcompile=True),
+            self.compile(query),
             'SELECT t1.x AS t1_x '
             'FROM t1 '
-            'WHERE t1.x IN (%(x_1_1)s, %(x_1_2)s) '
+            'WHERE t1.x IN (%(x_1)s, %(x_2)s) '
             'HAVING count(*) > %(count_1)s '
             'ORDER BY t1.x DESC'
         )
@@ -79,46 +77,6 @@ class SelectTestCase(CompilationTestCase):
             'AS "t1_nested.another_array_column" '
             'FROM t1 '
             'ARRAY JOIN t1."nested.array_column" AS from_array, '
-            't1."nested.another_array_column"'
-        )
-
-    def test_array_join_left(self):
-        table = self._make_table(
-            Column('nested.array_column', types.Array(types.Int8)),
-            Column('nested.another_array_column', types.Array(types.Int8))
-        )
-        first_label = table.c['nested.array_column'].label('from_array')
-        second_not_label = table.c['nested.another_array_column']
-        query = self.session.query(first_label, second_not_label)\
-            .array_join(first_label, second_not_label, left=True)
-        self.assertEqual(
-            self.compile(query),
-            'SELECT '
-            't1."nested.array_column" AS from_array, '
-            't1."nested.another_array_column" '
-            'AS "t1_nested.another_array_column" '
-            'FROM t1 '
-            'LEFT ARRAY JOIN t1."nested.array_column" AS from_array, '
-            't1."nested.another_array_column"'
-        )
-
-    def test_left_array_join(self):
-        table = self._make_table(
-            Column('nested.array_column', types.Array(types.Int8)),
-            Column('nested.another_array_column', types.Array(types.Int8))
-        )
-        first_label = table.c['nested.array_column'].label('from_array')
-        second_not_label = table.c['nested.another_array_column']
-        query = self.session.query(first_label, second_not_label)\
-            .left_array_join(first_label, second_not_label)
-        self.assertEqual(
-            self.compile(query),
-            'SELECT '
-            't1."nested.array_column" AS from_array, '
-            't1."nested.another_array_column" '
-            'AS "t1_nested.another_array_column" '
-            'FROM t1 '
-            'LEFT ARRAY JOIN t1."nested.array_column" AS from_array, '
             't1."nested.another_array_column"'
         )
 
@@ -234,7 +192,7 @@ class JoinTestCase(CompilationTestCase):
         self.assertEqual(
             self.compile(query),
             "SELECT t1.x AS t1_x, t2.x AS t2_x FROM t1 "
-            "ALL INNER JOIN t2 USING (x, y)"
+            "ALL INNER JOIN t2 USING x, y"
         )
 
         query = self.session.query(t1.c.x, t2.c.x) \
@@ -247,7 +205,7 @@ class JoinTestCase(CompilationTestCase):
         self.assertEqual(
             self.compile(query),
             "SELECT t1.x AS t1_x, t2.x AS t2_x FROM t1 "
-            "GLOBAL ALL INNER JOIN t2 USING (x, y)"
+            "GLOBAL ALL INNER JOIN t2 USING x, y"
         )
 
         query = self.session.query(t1.c.x, t2.c.x) \
@@ -262,7 +220,7 @@ class JoinTestCase(CompilationTestCase):
         self.assertEqual(
             self.compile(query),
             "SELECT t1.x AS t1_x, t2.x AS t2_x FROM t1 "
-            "GLOBAL ALL LEFT OUTER JOIN t2 USING (x, y)"
+            "GLOBAL ALL LEFT OUTER JOIN t2 USING x, y"
         )
 
         query = self.session.query(t1.c.x, t2.c.x) \
@@ -277,7 +235,7 @@ class JoinTestCase(CompilationTestCase):
         self.assertEqual(
             self.compile(query),
             "SELECT t1.x AS t1_x, t2.x AS t2_x FROM t1 "
-            "GLOBAL ALL LEFT OUTER JOIN t2 USING (x, y)"
+            "GLOBAL ALL LEFT OUTER JOIN t2 USING x, y"
         )
 
         query = self.session.query(t1.c.x, t2.c.x) \
@@ -289,7 +247,7 @@ class JoinTestCase(CompilationTestCase):
         self.assertEqual(
             self.compile(query),
             "SELECT t1.x AS t1_x, t2.x AS t2_x FROM t1 "
-            "ALL FULL OUTER JOIN t2 USING (x, y)"
+            "ALL FULL OUTER JOIN t2 USING x, y"
         )
 
 
@@ -298,50 +256,36 @@ class YieldTest(NativeSessionTestCase):
         numbers = Table(
             'numbers', self.metadata(),
             Column('number', types.UInt64, primary_key=True),
-            schema='system'
         )
 
-        query = self.session.query(numbers.c.number) \
-            .limit(100) \
-            .yield_per(15) \
-            .execution_options(foo='bar')
-
-        self.assertEqual(query.load_options._yield_per, 15)
-
-        # emit query for the first 'select version()'
-        self.session.query(literal(1)).scalar()
-
-        do_execute_orig = self.session.bind.dialect.do_execute
-
-        def side_effect(*args, **kwargs):
-            context = args[3]
-            options = context.execution_options
-            self.assertEqual(options['stream_results'], True)
-            self.assertEqual(options['foo'], 'bar')
-            self.assertEqual(options['max_row_buffer'], 15)
-            return do_execute_orig(*args, **kwargs)
-
-        tgt = 'clickhouse_sqlalchemy.drivers.base.ClickHouseDialect.do_execute'
-        with mock.patch(tgt, side_effect=side_effect):
-            query.all()
+        query = self.session.query(numbers.c.number).limit(100).yield_per(15)
+        query = query.execution_options(foo='bar')
+        self.assertIsNotNone(query._yield_per)
+        self.assertEqual(
+            query._execution_options,
+            {'stream_results': True, 'foo': 'bar', 'max_row_buffer': 15}
+        )
 
     def test_basic(self):
         numbers = Table(
             'numbers', self.metadata(),
             Column('number', types.UInt64, primary_key=True),
-            schema='system'
         )
 
         q = iter(
-            self.session.query(numbers.c.number).yield_per(1).limit(3)
+            self.session.query(numbers.c.number)
+            .yield_per(1)
+            .from_statement(text('SELECT * FROM system.numbers LIMIT 3'))
         )
 
         ret = []
         ret.append(next(q))
         ret.append(next(q))
         ret.append(next(q))
-
-        with self.assertRaises(StopIteration):
+        try:
             next(q)
+            self.assertTrue(False)
+        except StopIteration:
+            pass
 
         self.assertEqual(ret, [(0, ), (1, ), (2, )])

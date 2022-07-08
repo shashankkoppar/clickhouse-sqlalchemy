@@ -93,14 +93,8 @@ class NumericHttpTestCase(HttpSessionTestCase):
 
     def test_insert_truncate(self):
         value = Decimal('123.129999')
-        expected = Decimal('123.12')
 
         with self.create_table(self.table):
-            if self.server_version >= (20, 5, 2):
+            with self.assertRaises(DatabaseException) as ex:
                 self.session.execute(self.table.insert(), [{'x': value}])
-                self.assertEqual(self.session.query(self.table.c.x).scalar(),
-                                 expected)
-            else:
-                with self.assertRaises(DatabaseException) as ex:
-                    self.session.execute(self.table.insert(), [{'x': value}])
-                self.assertIn('value is too small', str(ex.exception))
+            self.assertIn('value is too small', str(ex.exception))

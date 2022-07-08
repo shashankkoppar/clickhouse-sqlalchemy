@@ -1,13 +1,10 @@
-from sqlalchemy import Column, func, text, select, inspect
-from sqlalchemy.sql.ddl import CreateTable, CreateColumn
+from sqlalchemy import Column, func
+from sqlalchemy.sql.ddl import CreateTable
 
-from clickhouse_sqlalchemy import (
-    types, engines, Table, get_declarative_base, MaterializedView
-)
+from clickhouse_sqlalchemy import types, engines, Table, get_declarative_base
 from clickhouse_sqlalchemy.sql.ddl import DropTable
 from tests.testcase import BaseTestCase
 from tests.session import mocked_engine
-from tests.util import require_server_version
 
 
 class DDLTestCase(BaseTestCase):
@@ -272,45 +269,6 @@ class DDLTestCase(BaseTestCase):
             'ENGINE = Memory'
         )
 
-    def test_add_column(self):
-        col = Column(
-            'x2', types.Int8, nullable=True, clickhouse_after=text('x1')
-        )
-
-        self.assertEqual(
-            self.compile(CreateColumn(col)),
-            'x2 Int8 AFTER x1'
-        )
-
-    def test_create_table_tuple(self):
-        table = Table(
-            't1', self.metadata(),
-            Column('x', types.Tuple(types.Int8, types.Float32)),
-            engines.Memory()
-        )
-
-        self.assertEqual(
-            self.compile(CreateTable(table)),
-            'CREATE TABLE t1 ('
-            'x Tuple(Int8, Float32)) '
-            'ENGINE = Memory'
-        )
-
-    @require_server_version(21, 1, 3)
-    def test_create_table_map(self):
-        table = Table(
-            't1', self.metadata(),
-            Column('x', types.Map(types.String, types.String)),
-            engines.Memory()
-        )
-
-        self.assertEqual(
-            self.compile(CreateTable(table)),
-            'CREATE TABLE t1 ('
-            'x Map(String, String)) '
-            'ENGINE = Memory'
-        )
-
     def test_table_create_on_cluster(self):
         create_sql = (
             'CREATE TABLE t1 ON CLUSTER test_cluster '
@@ -385,76 +343,3 @@ class DDLTestCase(BaseTestCase):
 
         metadata.create_all()
         metadata.drop_all()
-
-    def test_create_drop_mat_view(self):
-        Base = get_declarative_base(self.metadata())
-
-        class Statistics(Base):
-            date = Column(types.Date, primary_key=True)
-            sign = Column(types.Int8, nullable=False)
-            grouping = Column(types.Int32, nullable=False)
-            metric1 = Column(types.Int32, nullable=False)
-
-            __table_args__ = (
-                engines.CollapsingMergeTree(
-                    sign,
-                    partition_by=func.toYYYYMM(date),
-                    order_by=(date, grouping)
-                ),
-            )
-
-        # Define storage for Materialized View
-        class GroupedStatistics(Base):
-            date = Column(types.Date, primary_key=True)
-            metric1 = Column(types.Int32, nullable=False)
-
-            __table_args__ = (
-                engines.SummingMergeTree(
-                    partition_by=func.toYYYYMM(date),
-                    order_by=(date,)
-                ),
-            )
-
-        # Define SELECT for Materialized View
-        MatView = MaterializedView(GroupedStatistics, select([
-            Statistics.date.label('date'),
-            func.sum(Statistics.metric1 * Statistics.sign).label('metric1')
-        ]).where(
-            Statistics.grouping > 42
-        ).group_by(
-            Statistics.date
-        ))
-
-        Statistics.__table__.create()
-        MatView.create()
-
-        inspector = inspect(self.session.connection())
-
-        self.assertTrue(inspector.has_table(MatView.name))
-        MatView.drop()
-        self.assertFalse(inspector.has_table(MatView.name))
-
-    def test_create_table_with_comment(self):
-        table = Table(
-            't1', self.metadata(session=self.session),
-            Column('x', types.Int32, primary_key=True),
-            engines.Memory(),
-            comment='table_comment'
-        )
-
-        self.assertEqual(
-            self.compile(CreateTable(table)),
-            "CREATE TABLE t1 (x Int32) ENGINE = Memory COMMENT 'table_comment'"
-        )
-
-    def test_create_table_with_column_comment(self):
-        table = Table(
-            't1', self.metadata(session=self.session),
-            Column('x', types.Int32, primary_key=True, comment='col_comment'),
-            engines.Memory()
-        )
-
-        self.assertEqual(
-            self.compile(CreateTable(table)),
-            "CREATE TABLE t1 (x Int32 COMMENT 'col_comment') ENGINE = Memory"
-        )

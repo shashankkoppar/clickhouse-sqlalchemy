@@ -6,8 +6,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.orm import Query
 
 from tests.config import database, host, port, http_port, user, password
-from tests.session import http_session, native_session, \
-    system_native_session, http_engine
+from tests.session import http_session, native_session, system_native_session
 from tests.util import skip_by_server_version
 
 
@@ -31,20 +30,18 @@ class BaseAbstractTestCase(object):
             session = cls.session
         return MetaData(bind=session.bind)
 
-    def _compile(self, clause, bind=None, literal_binds=False,
-                 render_postcompile=False):
+    def _compile(self, clause, bind=None, literal_binds=False):
         if bind is None:
             bind = self.session.bind
         if isinstance(clause, Query):
             context = clause._compile_context()
-            clause = context.query
+            context.statement.use_labels = True
+            clause = context.statement
 
         kw = {}
         compile_kwargs = {}
         if literal_binds:
             compile_kwargs['literal_binds'] = True
-        if render_postcompile:
-            compile_kwargs['render_postcompile'] = True
 
         if compile_kwargs:
             kw['compile_kwargs'] = compile_kwargs
@@ -98,13 +95,6 @@ class HttpSessionTestCase(BaseTestCase):
 
     port = http_port
     session = http_session
-
-
-class HttpEngineTestCase(BaseTestCase):
-    """ Explicitly HTTP-based session Test Case """
-
-    port = http_port
-    engine = http_engine
 
 
 class NativeSessionTestCase(BaseTestCase):

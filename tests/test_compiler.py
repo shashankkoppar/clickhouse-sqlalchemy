@@ -1,7 +1,8 @@
 import enum
-from sqlalchemy import sql, Column, literal, literal_column
+from sqlalchemy import sql, Column, literal
 
 from clickhouse_sqlalchemy import types, Table, engines
+from clickhouse_sqlalchemy.util import compat
 from tests.testcase import CompilationTestCase, NativeSessionTestCase
 
 
@@ -36,7 +37,13 @@ class VisitTestCase(CompilationTestCase):
             "Enum16('foo' = 100, 'bar' = 500)"
         )
 
-        MyEnum = enum.Enum('MyEnum', [" ' t = ", "test"])
+        if compat.PY3:
+            data = [" ' t = ", "test"]
+        else:
+            from collections import OrderedDict
+            data = OrderedDict([(" ' t = ", 1), ("test", 2)])
+
+        MyEnum = enum.Enum('MyEnum', data)
 
         self.assertEqual(
             self.compile(types.Enum8(MyEnum)),
@@ -62,17 +69,4 @@ class VisitNativeTestCase(NativeSessionTestCase):
         self.assertEqual(
             self.compile(table.insert()),
             'INSERT INTO t1 (x) VALUES'
-        )
-
-    def test_insert_inplace_values(self):
-        table = Table(
-            't1', self.metadata(),
-            Column('x', types.Int32),
-            engines.Memory()
-        )
-        self.assertEqual(
-            self.compile(
-                table.insert().values(x=literal_column(str(42))),
-                literal_binds=True
-            ), 'INSERT INTO t1 (x) VALUES (42)'
         )

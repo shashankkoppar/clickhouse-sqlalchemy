@@ -1,8 +1,7 @@
-from sqlalchemy.util import asbool
 
 from . import connector
 from ..base import (
-    ClickHouseDialect, ClickHouseExecutionContextBase, ClickHouseSQLCompiler,
+    ClickHouseDialect, ClickHouseExecutionContextBase, ClickHouseCompiler,
 )
 
 # Export connector version
@@ -16,14 +15,11 @@ class ClickHouseExecutionContext(ClickHouseExecutionContextBase):
             self.executemany = True
 
 
-class ClickHouseNativeSQLCompiler(ClickHouseSQLCompiler):
+class ClickHouseNativeCompiler(ClickHouseCompiler):
 
     def visit_insert(self, insert_stmt, asfrom=False, **kw):
-        rv = super(ClickHouseNativeSQLCompiler, self).visit_insert(
+        rv = super(ClickHouseNativeCompiler, self).visit_insert(
             insert_stmt, asfrom=asfrom, **kw)
-
-        if kw.get('literal_binds') or insert_stmt._values:
-            return rv
 
         pos = rv.lower().rfind('values (')
         # Remove (%s)-templates from VALUES clause if exists.
@@ -38,26 +34,22 @@ class ClickHouseNativeSQLCompiler(ClickHouseSQLCompiler):
 class ClickHouseDialect_native(ClickHouseDialect):
     driver = 'native'
     execution_ctx_cls = ClickHouseExecutionContext
-    statement_compiler = ClickHouseNativeSQLCompiler
-
-    supports_statement_cache = True
+    statement_compiler = ClickHouseNativeCompiler
 
     @classmethod
     def dbapi(cls):
         return connector
 
     def create_connect_args(self, url):
-        url = url.set(drivername='clickhouse')
-
-        self.engine_reflection = asbool(
-            url.query.get('engine_reflection', 'true')
-        )
+        url.drivername = 'clickhouse'
 
         return (str(url), ), {}
 
-    def _execute(self, connection, sql, scalar=False, **kwargs):
-        f = connection.scalar if scalar else connection.execute
-        return f(sql, **kwargs)
+    def _execute(self, connection, sql, **kwargs):
+        return connection.execute(sql, **kwargs)
+
+    def _query_server_version_string(self, connection):
+        return connection.scalar('select version()')
 
 
 dialect = ClickHouseDialect_native

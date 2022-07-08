@@ -32,7 +32,7 @@ class MergeTree(Engine):
 
         self.sample_by = None
         if sample_by is not None:
-            self.sample_by = KeysExpressionOrColumn(*to_list(sample_by))
+            self.sample_by = KeysExpressionOrColumn(sample_by)
 
         self.ttl = None
         if ttl is not None:
@@ -41,18 +41,18 @@ class MergeTree(Engine):
         self.settings = settings
         super(MergeTree, self).__init__()
 
-    def _set_parent(self, table, **kwargs):
-        super(MergeTree, self)._set_parent(table, **kwargs)
+    def _set_parent(self, table):
+        super(MergeTree, self)._set_parent(table)
         if self.partition_by is not None:
-            self.partition_by._set_parent(table, **kwargs)
+            self.partition_by._set_parent(table)
         if self.order_by is not None:
-            self.order_by._set_parent(table, **kwargs)
+            self.order_by._set_parent(table)
         if self.primary_key is not None:
-            self.primary_key._set_parent(table, **kwargs)
+            self.primary_key._set_parent(table)
         if self.sample_by is not None:
-            self.sample_by._set_parent(table, **kwargs)
+            self.sample_by._set_parent(table)
         if self.ttl is not None:
-            self.ttl._set_parent(table, **kwargs)
+            self.ttl._set_parent(table)
 
     @classmethod
     def wrap_with_text(cls, table, cols):
@@ -119,10 +119,10 @@ class CollapsingMergeTree(MergeTree):
     def get_parameters(self):
         return self.sign_col.get_column()
 
-    def _set_parent(self, table, **kwargs):
-        super(CollapsingMergeTree, self)._set_parent(table, **kwargs)
+    def _set_parent(self, table):
+        super(CollapsingMergeTree, self)._set_parent(table)
 
-        self.sign_col._set_parent(table, **kwargs)
+        self.sign_col._set_parent(table)
 
     @classmethod
     def reflect(cls, table, engine_full, **kwargs):
@@ -145,11 +145,11 @@ class VersionedCollapsingMergeTree(MergeTree):
     def get_parameters(self):
         return [self.sign_col.get_column(), self.version_col.get_column()]
 
-    def _set_parent(self, table, **kwargs):
-        super(VersionedCollapsingMergeTree, self)._set_parent(table, **kwargs)
+    def _set_parent(self, table):
+        super(VersionedCollapsingMergeTree, self)._set_parent(table)
 
-        self.sign_col._set_parent(table, **kwargs)
-        self.version_col._set_parent(table, **kwargs)
+        self.sign_col._set_parent(table)
+        self.version_col._set_parent(table)
 
     @classmethod
     def reflect(cls, table, engine_full, **kwargs):
@@ -172,11 +172,11 @@ class SummingMergeTree(MergeTree):
         if summing_cols is not None:
             self.summing_cols = KeysExpressionOrColumn(*to_list(summing_cols))
 
-    def _set_parent(self, table, **kwargs):
-        super(SummingMergeTree, self)._set_parent(table, **kwargs)
+    def _set_parent(self, table):
+        super(SummingMergeTree, self)._set_parent(table)
 
         if self.summing_cols is not None:
-            self.summing_cols._set_parent(table, **kwargs)
+            self.summing_cols._set_parent(table)
 
     def get_parameters(self):
         if self.summing_cols is not None:
@@ -204,11 +204,11 @@ class ReplacingMergeTree(MergeTree):
         if version_col is not None:
             self.version_col = TableCol(version_col)
 
-    def _set_parent(self, table, **kwargs):
-        super(ReplacingMergeTree, self)._set_parent(table, **kwargs)
+    def _set_parent(self, table):
+        super(ReplacingMergeTree, self)._set_parent(table)
 
         if self.version_col is not None:
-            self.version_col._set_parent(table, **kwargs)
+            self.version_col._set_parent(table)
 
     def get_parameters(self):
         if self.version_col is not None:
