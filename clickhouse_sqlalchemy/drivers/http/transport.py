@@ -59,7 +59,6 @@ converters = {
     'UInt64': int,
     'Int128': int,
     'UInt128': int,
-    'String': String,
     'Int256': int,
     'UInt256': int,
     'Float32': float,
