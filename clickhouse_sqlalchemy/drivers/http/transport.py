@@ -51,6 +51,7 @@ converters = {
     'Int8': int,
     'UInt8': int,
     'Int16': int,
+    'String': String,
     'UInt16': int,
     'Int32': int,
     'UInt32': int,
@@ -77,6 +78,16 @@ def _get_type(type_str):
     result = converters.get(type_str)
     if result is not None:
         return result
+
+    if type_str == 'LowCardinality(String)':
+        return converters['String']
+
+    if type_str == 'Bool':
+        return converters['UInt8']
+        
+    if type_str == 'LowCardinality(Nullable(String))':
+        return converters['String']
+    
     # sometimes type_str is DateTime64(x)
     if type_str.startswith('DateTime64'):
         return converters['DateTime64']
