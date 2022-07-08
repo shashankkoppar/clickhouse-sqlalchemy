@@ -80,14 +80,17 @@ def _get_type(type_str):
     if result is not None:
         return result
 
+    if type_str.startswith('FixedString'):
+        type_str = 'String'
+
     if type_str == 'LowCardinality(String)':
-        return converters['String']
+        type_str = 'String'
 
     if type_str == 'Bool':
-        return converters['UInt8']
+        type_str = 'UInt8'
 
     if type_str == 'LowCardinality(Nullable(String))':
-        return converters['String']
+        type_str = 'String'
 
     if type_str.startswith('Decimal'):
         return converters['Decimal']
